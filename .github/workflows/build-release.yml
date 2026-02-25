@@ -12,16 +12,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            target: macos-arm64
-          - os: macos-15-intel
-            target: macos-x86_64
+          # - os: macos-latest
+          #   target: macos-arm64
+          # - os: macos-15-intel
+          #   target: macos-x86_64
           - os: ubuntu-latest
             target: linux-x86_64
             # 使用基于 AlmaLinux 8 (glibc 2.28) 的 manylinux 镜像以确保兼容性
             container: "quay.io/pypa/manylinux_2_28_x86_64"
-          - os: windows-latest
-            target: windows-x86_64
+          # - os: windows-latest
+          #   target: windows-x86_64
 
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
@@ -34,10 +34,19 @@ jobs:
         run: |
           yum install -y git wget tar gzip
 
-      - name: Set up Python 3.13
+      - name: Set up Python 3.13 (Non-Linux)
+        if: matrix.target != 'linux-x86_64'
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+
+      - name: Set up Python 3.13 (Linux Container)
+        if: matrix.target == 'linux-x86_64'
+        run: |
+          # Use pre-installed Python 3.13 in manylinux image which is compatible with glibc 2.28
+          ln -sf /opt/python/cp313-cp313/bin/python3.13 /usr/local/bin/python3
+          ln -sf /opt/python/cp313-cp313/bin/python3.13 /usr/local/bin/python
+          python3 --version
 
       - name: Install Poetry
         uses: snok/install-poetry@v1
