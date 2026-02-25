@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for the release'
+        required: true
+        default: 'v0.7.0'
 
 jobs:
   build:
@@ -25,9 +30,22 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
+    
+    outputs:
+      release_tag: ${{ steps.get_tag.outputs.TAG }}
 
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Determine Tag
+        id: get_tag
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "TAG=${{ github.event.inputs.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Install System Dependencies (Linux)
         if: matrix.target == 'linux-x86_64'
@@ -113,6 +131,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          tag_name: ${{ needs.build.outputs.release_tag }}
+          prerelease: ${{ github.event_name == 'workflow_dispatch' || !startsWith(github.ref, 'refs/tags/') }}
           generate_release_notes: true
           files: release/*
