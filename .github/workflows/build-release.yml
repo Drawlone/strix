@@ -43,9 +43,20 @@ jobs:
       - name: Set up Python 3.13 (Linux Container)
         if: matrix.target == 'linux-x86_64'
         run: |
-          # Use pre-installed Python 3.13 in manylinux image which is compatible with glibc 2.28
-          ln -sf /opt/python/cp313-cp313/bin/python3.13 /usr/local/bin/python3
-          ln -sf /opt/python/cp313-cp313/bin/python3.13 /usr/local/bin/python
+          # Install Miniconda to get Python 3.13 with shared libraries (required by PyInstaller)
+          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+          bash miniconda.sh -b -p $HOME/miniconda
+          export PATH="$HOME/miniconda/bin:$PATH"
+          conda create -y -n build python=3.13
+          
+          # Set paths for subsequent steps
+          CONDA_PY_PATH="$HOME/miniconda/envs/build"
+          echo "$CONDA_PY_PATH/bin" >> $GITHUB_PATH
+          echo "LD_LIBRARY_PATH=$CONDA_PY_PATH/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          
+          # Symlink to standard names
+          ln -sf $CONDA_PY_PATH/bin/python3 /usr/local/bin/python
+          ln -sf $CONDA_PY_PATH/bin/python3 /usr/local/bin/python3
           python3 --version
 
       - name: Install Poetry
