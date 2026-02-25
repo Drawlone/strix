@@ -18,23 +18,43 @@ jobs:
             target: macos-x86_64
           - os: ubuntu-latest
             target: linux-x86_64
+            # 使用基于 AlmaLinux 8 (glibc 2.28) 的 manylinux 镜像以确保兼容性
+            container: "quay.io/pypa/manylinux_2_28_x86_64"
           - os: windows-latest
             target: windows-x86_64
 
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      - name: Install System Dependencies (Linux)
+        if: matrix.target == 'linux-x86_64'
+        run: |
+          yum install -y git wget tar gzip
 
-      - uses: snok/install-poetry@v1
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
 
       - name: Build
         shell: bash
         run: |
+          # 针对 Linux 容器环境的特殊设置
+          if [[ "${{ matrix.target }}" == "linux-x86_64" ]]; then
+            export PATH="$HOME/.local/bin:$PATH"
+            poetry env use python3.13
+          fi
+
           poetry install --with dev
           poetry run pyinstaller strix.spec --noconfirm
 
