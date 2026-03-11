@@ -130,7 +130,10 @@ class DockerRuntime(AbstractRuntime):
                     detach=True,
                     name=container_name,
                     hostname=container_name,
-                    ports={f"{CONTAINER_TOOL_SERVER_PORT}/tcp": self._tool_server_port},
+                    ports={
+                        f"{CONTAINER_TOOL_SERVER_PORT}/tcp": self._tool_server_port,
+                        "6080/tcp": 6080
+                    },
                     cap_add=["NET_ADMIN", "NET_RAW"],
                     labels={"strix-scan-id": scan_id},
                     environment={
